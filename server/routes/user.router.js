@@ -14,14 +14,28 @@ router.get('/', rejectUnauthenticated, (req, res) => {
   res.send(req.user);
 });
 
+
+// test to make sure routes can be tested in postman, sends back list of all user & their info
+router.get('/all-users', (req, res) => {
+  console.log('/user GET route');
+  const queryText = `SELECT * FROM "users";`;
+  pool.query(queryText)
+      .then((result) => {
+          res.send(result.rows);
+      }).catch((error) => {
+          console.log(error);
+          res.sendStatus(500);
+      })
+});
+
 // Handles POST request with new user data
 // The only thing different from this and every other post we've seen
 // is that the password gets encrypted before being inserted
 router.post('/register', (req, res, next) => {
   const username = req.body.username;
-  const password = encryptLib.encryptPassword(req.body.password);
+  const password = req.body.password;
 
-  const queryText = `INSERT INTO "user" (username, password)
+  const queryText = `INSERT INTO "users" (username, password)
     VALUES ($1, $2) RETURNING id`;
   pool
     .query(queryText, [username, password])
