@@ -21,21 +21,30 @@ router.get('/', (req, res) => {
 });
 
 // This route adds an event for the logged in user
-router.post('/', async (req, res) => {
+router.post('/', (req, res) => {
     console.log('/event POST route');
     console.log(req.body);
     // console.log('is authenticated?', req.isAuthenticated());
     console.log('user', req.user);
-
-    try {
-        const result = await pool.query(`INSERT INTO "events" ("event_date", "event_time", "event_name", "description", "location", "event_type_id", "event_admin", "group_id")
-                                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *;`, 
-                                         [req.body.event_date, req.body.event_time, req.body.event_name, req.body.description, req.body.location, req.body.event_type_id, req.user.id, req.body.group_id]);
-        res.send(result.rows[0]);
-    } catch (err) {
-        console.error(err);
-        res.sendStatus(500);
-    }
+    const eventQueryText = `INSERT INTO "events" ("event_date", "event_time", "event_name", "description", "location", "event_type_id", "event_admin", "group_id")
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *;`;
+    pool.query(eventQueryText, [req.body.event_date, req.body.event_time, req.body.event_name, req.body.description, req.body.location, req.body.event_type_id, req.user.id, req.body.group_id])
+        .then((result) => {
+            const createdEventId = result.rows[0].event_id;
+            console.log(result.rows);
+            console.log('GROUP ID', req.body.group_id);
+            const rsvpText = `INSERT INTO "rsvp" ("event_id", "membership_id", "status") VALUES ($1, (SELECT "id" FROM "memberships" WHERE "user_id"=$2 AND "group_id"=$3), 1);`;
+            pool.query(rsvpText, [createdEventId, req.user.id, req.body.group_id])
+                .then(result => {
+                    res.sendStatus(201);
+                }).catch((error) => {
+                    console.log(error);
+                    res.sendStatus(500);
+                });
+        }).catch((error) => {
+            console.log(error);
+            res.sendStatus(500);
+        });
 });
 
 // Edit (PUT) event (can only edit an event you made)
