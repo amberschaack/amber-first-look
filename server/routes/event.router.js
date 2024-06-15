@@ -33,9 +33,12 @@ router.post('/', (req, res) => {
             const createdEventId = result.rows[0].event_id;
             console.log(result.rows);
             console.log('GROUP ID', req.body.group_id);
-            const rsvpText = `INSERT INTO "rsvp" ("event_id", "membership_id", "status") VALUES ($1, (SELECT "id" FROM "memberships" WHERE "user_id"=$2 AND "group_id"=$3), 1);`;
+            // THIS NEEDS TO BE FINISHED - SELECT STATEMENT IS RETURNING NULL
+            const rsvpText = `INSERT INTO "rsvp" ("event_id", "membership_id", "status") 
+                                VALUES ($1, (SELECT "id" FROM "memberships" WHERE "user_id"=$2 AND "group_id"=$3), 1);`;
             pool.query(rsvpText, [createdEventId, req.user.id, req.body.group_id])
-                .then(result => {
+                .then((result) => {
+                    res.send(result.rows[0]);
                     res.sendStatus(201);
                 }).catch((error) => {
                     console.log(error);
